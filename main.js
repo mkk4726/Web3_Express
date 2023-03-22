@@ -1,49 +1,26 @@
 const express = require('express');
 const app = express();
 var fs = require('fs');
-var url = require('url');
-var qs = require('querystring');
-const path = require('path');
-const sanitizeHtml = require('sanitize-html');
-
 // make html source about list and body.
 const template = require('./libs/templates');
-const { template_list, template_body} = template;
 
+// route, routing
+// app.get('/', (req, res) => res.send('Hello World))
 app.get('/', (req, res) => {
-  var _url = req.url;
-  var queryData = url.parse(_url, true).query;
-  var pathname = url.parse(_url, true).pathname;
-  var title = queryData.id;
-  var sanitizedTitle = sanitizeHtml(title);
-
-  if (pathname === '/') {
-    if (queryData.id === undefined) {
-      queryData.id = 'INDEX'
+  fs.readdir('./data', (err, filelist) => {
+    var title = 'Welcome';
+    var description = 'Hello, Node.js';
+    var list = template.list(filelist);
+    var html = template.HTML(title, list, 
+      `<h2>${title}</h2>${description}`,
+      `<a href="/create>create</a>`
+    );
+    // res.writeHead(200);
+    // res.end(html);
+    res.status(200).send(html);
+  });
+});
     
-    };
-    fs.readdir('./data', (err, filelist) => {   
-      var filteredId = path.parse(queryData.id).base;
-      fs.readFile(`./data/${filteredId}`, 'utf8', function(err, description) {
-        var sanitizedDescription = sanitizeHtml(description);
-        let list = template_list(filelist);
-        let body = template_body(sanitizedTitle, list , sanitizedDescription,
-          `<a href="/create">create</a>
-          <a href="/update?id=${sanitizedTitle}">update</a>
-          <form action="delete_process" method="post">
-            <input type="hidden" name="id" value="${sanitizedTitle}">
-            <input type="submit" value="delete">
-          </form>
-          `);
-        response.writeHead(200);
-        response.end(body);
-        })
-      })
-  }
-})
-
-
-
 app.get('/page', (req, res) => {
   return res.send('/page');
 })

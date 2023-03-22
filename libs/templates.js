@@ -1,5 +1,5 @@
 module.exports = {
-  template_list : (filelist) => {
+  list : (filelist) => {
     var list = '<ul>';
     var i = 0;
     while(i < filelist.length) {
@@ -12,7 +12,7 @@ module.exports = {
     list = list + '</ul>';
     return list;
   },
-  template_body : (title, list, description, control) => {
+  HTML : (title, list, description, control) => {
     var template = `
         <!doctype html>
         <html>
