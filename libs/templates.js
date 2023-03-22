@@ -1,4 +1,5 @@
 module.exports = {
+  // make list html code
   list : (filelist) => {
     var list = '<ul>';
     var i = 0;
@@ -11,8 +12,9 @@ module.exports = {
     list = list + '</ul>';
     return list;
   },
+  // make body html code
   HTML : (title, list, description, control) => {
-    var template = `
+    return  `
         <!doctype html>
         <html>
         <head>
@@ -26,8 +28,7 @@ module.exports = {
           <h2>${title}</h2>
           <p>${description}</p>
         </body>
-        </html>`
-    return template;
+        </html>`;
   }
 } 
 

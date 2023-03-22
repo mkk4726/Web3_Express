@@ -1,6 +1,8 @@
 const express = require('express');
 const app = express();
 var fs = require('fs');
+var sanitizeHtml = require('sanitize-html');
+var path = require('path');
 // make html source about list and body.
 const template = require('./libs/templates');
 
@@ -22,8 +24,30 @@ app.get('/', (req, res) => {
 });
     
 app.get('/page/:pageId', (req, res) => {
-  res.status(200).send(req.params);
-})
+  // read filelist from ./data
+  fs.readdir('./data', (err, filelist) => {   
+    // for security. prevent input like "../password.js"
+    var filteredId = path.parse(req.params.pageId).base;
+    // read description from ./data/id
+    fs.readFile(`./data/${filteredId}`, 'utf8', (err, desc) => {
+      let title = req.params.pageId;
+      var sanitizedTitle = sanitizeHtml(title);
+      var sanitizedDescription = sanitizeHtml(desc, {
+        allowedTags:['h1']
+      });
+      let list = template.list(filelist);
+      let html = template.HTML(title, list , sanitizedDescription,
+        `<a href="/create">create</a>
+        <a href="/update?id=${sanitizedTitle}">update</a>
+        <form action="delete_process" method="post">
+          <input type="hidden" name="id" value="${sanitizedTitle}">
+          <input type="submit" value="delete">
+        </form>`
+      );
+      res.status(200).send(html);
+    });
+  });
+});
 
 app.listen(3000, () => {
   console.log('Example app listeng on port 3000!')
