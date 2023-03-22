@@ -14,9 +14,9 @@ app.get('/', (req, res) => {
     var title = 'Welcome';
     var description = 'Hello, Node.js';
     var list = template.list(filelist);
-    var html = template.HTML(title, list, 
+    var html = template.HTML("Main page", list, 
       `<h2>${title}</h2>${description}`,
-      `<a href="/create>create</a>`
+      `<a href="/create">create</a>`
     );
     // res.writeHead(200);
     // res.end(html);
@@ -40,7 +40,7 @@ app.get('/page/:pageId', (req, res) => {
       let html = template.HTML(title, list , sanitizedDescription,
         `<a href="/create">create</a>
         <a href="/update/${sanitizedTitle}">update</a>
-        <form action="delete_process" method="post">
+        <form action="/delete_process" method="post">
           <input type="hidden" name="id" value="${sanitizedTitle}">
           <input type="submit" value="delete">
         </form>`
@@ -131,6 +131,24 @@ app.post('/update_process', (req, res) => {
         res.writeHead(302, {Location: `/page/${title}`}); // redirection
         res.end();
       });
+    });
+  });
+});
+
+// implement delete function
+// post request로 id값만 전달됨.
+app.post('/delete_process', (req, res) => {
+  var body = '';
+  req.on('data', (data) => {
+    body = body + data;
+  });
+  req.on('end', () => {
+    var post = qs.parse(body);
+    var id = post.id;
+    var filteredId = path.parse(id).base;
+    console.log(filteredId);
+    fs.unlink(`data/${filteredId}`, (err) => {
+      res.redirect('/'); // 처음 페이지로 redirection
     });
   });
 });
