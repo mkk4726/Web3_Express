@@ -4,6 +4,13 @@ var fs = require('fs');
 var sanitizeHtml = require('sanitize-html');
 var path = require('path');
 var qs = require('querystring');
+
+// using middleware, body-parser
+var bodyParser = require('body-parser');
+app.use(bodyParser.urlencoded({extended: false})) 
+// main.js가 실행될 때마다, 사용자가 요청할 때마다 middleware가 실행됨.
+// req.body가 추가됨.
+
 // make html source about list and body.
 const template = require('./libs/templates');
 
@@ -72,6 +79,8 @@ app.get('/create', (req, res) => {
 });
 
 app.post('/create_process', (req, res) => {
+
+  /*
   var body = '';
   // divide request just in case request is too long to process.  
   req.on('data', (data) => {
@@ -86,6 +95,15 @@ app.post('/create_process', (req, res) => {
       res.end();
     })
   });
+  */
+  var post = req.body;
+  var title = post.title;
+  var description = post.description;
+  fs.writeFile(`data/${title}`, description, 'utf8', (err) => {
+    res.writeHead(302, {Location: `/page/${title}`});
+    res.end();
+  })
+
 });
 
 // implement update function
@@ -138,18 +156,11 @@ app.post('/update_process', (req, res) => {
 // implement delete function
 // post request로 id값만 전달됨.
 app.post('/delete_process', (req, res) => {
-  var body = '';
-  req.on('data', (data) => {
-    body = body + data;
-  });
-  req.on('end', () => {
-    var post = qs.parse(body);
-    var id = post.id;
-    var filteredId = path.parse(id).base;
-    console.log(filteredId);
-    fs.unlink(`data/${filteredId}`, (err) => {
-      res.redirect('/'); // 처음 페이지로 redirection
-    });
+  var post = req.body;
+  var id = post.id;
+  var filteredId = path.parse(id).base;
+  fs.unlink(`data/${filteredId}`, (err) => {
+    res.redirect('/'); // 처음 페이지로 redirection
   });
 });
 
