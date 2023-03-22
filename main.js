@@ -21,8 +21,8 @@ app.get('/', (req, res) => {
   });
 });
     
-app.get('/page', (req, res) => {
-  return res.send('/page');
+app.get('/page/:pageId', (req, res) => {
+  res.status(200).send(req.params);
 })
 
 app.listen(3000, () => {
