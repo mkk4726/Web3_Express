@@ -11,6 +11,13 @@ app.use(bodyParser.urlencoded({extended: false}))
 // main.js가 실행될 때마다, 사용자가 요청할 때마다 middleware가 실행됨.
 // req.body가 추가됨.
 
+// using 
+// create, request가 너무 길어서 거절됨. 용량이 커서 생기는 문제들
+// -> 압축으로 해결. response header 에 content-encoding: gzip으로 보내줌
+
+var compression = require('compression');
+app.use(compression());
+
 // make html source about list and body.
 const template = require('./libs/templates');
 
