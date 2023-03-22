@@ -3,6 +3,7 @@ const app = express();
 var fs = require('fs');
 var sanitizeHtml = require('sanitize-html');
 var path = require('path');
+var qs = require('querystring');
 // make html source about list and body.
 const template = require('./libs/templates');
 
@@ -46,6 +47,46 @@ app.get('/page/:pageId', (req, res) => {
       );
       res.status(200).send(html);
     });
+  });
+});
+
+// implement create function
+app.get('/create', (req, res) => {
+  fs.readdir('./data', (err, filelist) => {
+    var title = 'WEB - create';
+    var list = template.list(filelist);
+    // form tag를 이용해서 post request를 보낼 수 있다.
+    var html = template.HTML(title, list, ` 
+      <form action="/create_process" method="post">
+        <p><input type="text" name="title" placeholder="title"></p>
+        <p>
+          <textarea name="description" placeholder="description"></textarea>
+        </p>
+        <p>
+          <input type="submit">
+        </p>
+      </form>
+    `, '');
+    res.status(200).send(html);
+  });
+});
+
+app.post('/create_process', (req, res) => {
+  var body = '';
+  // divide request just in case request is too long to process.  
+  req.on('data', (data) => {
+    body = body + data;
+  });
+  req.on('end', () => {
+    console.log(body);
+    var post = qs.parse(body);
+    console.log(post);
+    var title = post.title;
+    var description = post.description;
+    fs.writeFile(`data/${title}`, description, 'utf8', (err) => {
+      res.writeHead(302, {Location: `/page/${title}`}); // redirection
+      res.end();
+    })
   });
 });
 
