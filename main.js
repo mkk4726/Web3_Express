@@ -54,27 +54,32 @@ app.get('/', (req, res) => {
   // res.end(html);
   res.status(200).send(html);
 });
-    
-app.get('/page/:pageId', (req, res) => {
+  
+// list에 없는 값을 url로 요청했을 때 error을 발생시키자.
+app.get('/page/:pageId', (req, res, next) => {
   // for security. prevent input like "../password.js"
   var filteredId = path.parse(req.params.pageId).base;
   // read description from ./data/id
   fs.readFile(`./data/${filteredId}`, 'utf8', (err, desc) => {
-    let title = req.params.pageId;
-    var sanitizedTitle = sanitizeHtml(title);
-    var sanitizedDescription = sanitizeHtml(desc, {
-      allowedTags:['h1']
-    });
-    let list = template.list(req.list);
-    let html = template.HTML(title, list , sanitizedDescription,
-      `<a href="/create">create</a>
-      <a href="/update/${sanitizedTitle}">update</a>
-      <form action="/delete_process" method="post">
-        <input type="hidden" name="id" value="${sanitizedTitle}">
-        <input type="submit" value="delete">
-      </form>`
-    );
-    res.status(200).send(html);
+    if (err) {
+      next(err); // error가 발생하면 다음 middleware을 호출하도록. err을 던진다. 
+    } else {
+      let title = req.params.pageId;
+      var sanitizedTitle = sanitizeHtml(title);
+      var sanitizedDescription = sanitizeHtml(desc, {
+        allowedTags:['h1']
+      });
+      let list = template.list(req.list);
+      let html = template.HTML(title, list , sanitizedDescription,
+        `<a href="/create">create</a>
+        <a href="/update/${sanitizedTitle}">update</a>
+        <form action="/delete_process" method="post">
+          <input type="hidden" name="id" value="${sanitizedTitle}">
+          <input type="submit" value="delete">
+        </form>`
+      );
+      res.status(200).send(html);
+    }
   });
 });
 
@@ -182,7 +187,17 @@ app.post('/delete_process', (req, res) => {
   });
 });
 
+// handle 404 response
+app.use((req, res, next) => {
+  res.status(404).send("Sorry can't find that!")
+})
 
+// error handler
+// express에서는 4개의 인자를 가지고 있는 함수는 error를 handling하기 위한 middleware로 약속되어있다. 
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+})
 
 app.listen(3000, () => {
   console.log('Example app listeng on port 3000!')
