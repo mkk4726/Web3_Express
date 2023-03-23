@@ -5,6 +5,11 @@ var sanitizeHtml = require('sanitize-html');
 var path = require('path');
 var qs = require('querystring');
 
+// static file
+app.use(express.static('public')); // public directory안에서 파일을 찾겠다.
+// public아래에 있는 파일이나 디렉토리를 url을 통해 접근할 수 있게된다. -> 훨씬 더 안전해진다. 
+
+
 // using middleware, body-parser
 var bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({extended: false})) 
@@ -40,7 +45,9 @@ app.get('/', (req, res) => {
   var description = 'Hello, Node.js';
   var list = template.list(req.list);
   var html = template.HTML("Main page", list, 
-    `<h2>${title}</h2>${description}`,
+    `<h2>${title}</h2>${description}
+    <img src="/images/hello.jpg" style="width:25%; display:block; margin-top:10px">
+    `,
     `<a href="/create">create</a>`
   );
   // res.writeHead(200);
