@@ -10,6 +10,8 @@ const template = require('./libs/templates');
 
 // simplify code using router.
 var topicRouter = require('./routes/topic');
+var indexRouter = require('./routes/index');
+
 
 // static file
 app.use(express.static('public')); // public directory안에서 파일을 찾겠다.
@@ -40,26 +42,11 @@ app.get('*', (req, res, next) => {
   });
 });
 
+// route, routing
+
 // /topic으로 시작하는 주소들에게 topicRouter라는 middleware를 적용하겠다. 
 app.use('/topic', topicRouter);
-
-// route, routing
-// app.get('/', (req, res) => res.send('Hello World))
-app.get('/', (req, res) => {
-  var title = 'Welcome';
-  var description = 'Hello, Node.js';
-  var list = template.list(req.list);
-  var html = template.HTML("Main page", list, 
-    `<h2>${title}</h2>${description}
-    <img src="/images/hello.jpg" style="width:25%; display:block; margin-top:10px">
-    `,
-    `<a href="/topic/create">create</a>`
-  );
-  // res.writeHead(200);
-  // res.end(html);
-  res.status(200).send(html);
-});
-
+app.use('/', indexRouter);
 
 
 // handle 404 response
