@@ -19,7 +19,10 @@ app.use(compression());
 
 // make middle ware
 // 공통적으로 사용되는 기능을 middleware로 처리한다.
-app.use((req, res, next) => {
+// 필요없을 때도 불러오는 비효율이 발생한다. use -> get
+// 모든 get방식에서만 filedir을 불러오는 방식. post에서는 발생하지 않는다. 
+// 사실 express에서는 모든게 middle ware다 .
+app.get('*', (req, res, next) => {
   fs.readdir('./data', (err, filelist) => {
     req.list = filelist;
     console.log(`middle-ware is used, ${req.list}`);
