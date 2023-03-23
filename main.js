@@ -14,9 +14,18 @@ app.use(bodyParser.urlencoded({extended: false}))
 // using 
 // create, request가 너무 길어서 거절됨. 용량이 커서 생기는 문제들
 // -> 압축으로 해결. response header 에 content-encoding: gzip으로 보내줌
-
 var compression = require('compression');
 app.use(compression());
+
+// make middle ware
+// 공통적으로 사용되는 기능을 middleware로 처리한다.
+app.use((req, res, next) => {
+  fs.readdir('./data', (err, filelist) => {
+    req.list = filelist;
+    console.log(`middle-ware is used, ${req.list}`);
+    next(); // next에는 그 다음에 호출되어야할 middleware가 담겨있다. 
+  });
+});
 
 // make html source about list and body.
 const template = require('./libs/templates');
@@ -24,65 +33,58 @@ const template = require('./libs/templates');
 // route, routing
 // app.get('/', (req, res) => res.send('Hello World))
 app.get('/', (req, res) => {
-  fs.readdir('./data', (err, filelist) => {
-    var title = 'Welcome';
-    var description = 'Hello, Node.js';
-    var list = template.list(filelist);
-    var html = template.HTML("Main page", list, 
-      `<h2>${title}</h2>${description}`,
-      `<a href="/create">create</a>`
-    );
-    // res.writeHead(200);
-    // res.end(html);
-    res.status(200).send(html);
-  });
+  var title = 'Welcome';
+  var description = 'Hello, Node.js';
+  var list = template.list(req.list);
+  var html = template.HTML("Main page", list, 
+    `<h2>${title}</h2>${description}`,
+    `<a href="/create">create</a>`
+  );
+  // res.writeHead(200);
+  // res.end(html);
+  res.status(200).send(html);
 });
     
 app.get('/page/:pageId', (req, res) => {
-  // read filelist from ./data
-  fs.readdir('./data', (err, filelist) => {   
-    // for security. prevent input like "../password.js"
-    var filteredId = path.parse(req.params.pageId).base;
-    // read description from ./data/id
-    fs.readFile(`./data/${filteredId}`, 'utf8', (err, desc) => {
-      let title = req.params.pageId;
-      var sanitizedTitle = sanitizeHtml(title);
-      var sanitizedDescription = sanitizeHtml(desc, {
-        allowedTags:['h1']
-      });
-      let list = template.list(filelist);
-      let html = template.HTML(title, list , sanitizedDescription,
-        `<a href="/create">create</a>
-        <a href="/update/${sanitizedTitle}">update</a>
-        <form action="/delete_process" method="post">
-          <input type="hidden" name="id" value="${sanitizedTitle}">
-          <input type="submit" value="delete">
-        </form>`
-      );
-      res.status(200).send(html);
+  // for security. prevent input like "../password.js"
+  var filteredId = path.parse(req.params.pageId).base;
+  // read description from ./data/id
+  fs.readFile(`./data/${filteredId}`, 'utf8', (err, desc) => {
+    let title = req.params.pageId;
+    var sanitizedTitle = sanitizeHtml(title);
+    var sanitizedDescription = sanitizeHtml(desc, {
+      allowedTags:['h1']
     });
+    let list = template.list(req.list);
+    let html = template.HTML(title, list , sanitizedDescription,
+      `<a href="/create">create</a>
+      <a href="/update/${sanitizedTitle}">update</a>
+      <form action="/delete_process" method="post">
+        <input type="hidden" name="id" value="${sanitizedTitle}">
+        <input type="submit" value="delete">
+      </form>`
+    );
+    res.status(200).send(html);
   });
 });
 
 // implement create function
 app.get('/create', (req, res) => {
-  fs.readdir('./data', (err, filelist) => {
-    var title = 'WEB - create';
-    var list = template.list(filelist);
-    // form tag를 이용해서 post request를 보낼 수 있다.
-    var html = template.HTML(title, list, ` 
-      <form action="/create_process" method="post">
-        <p><input type="text" name="title" placeholder="title"></p>
-        <p>
-          <textarea name="description" placeholder="description"></textarea>
-        </p>
-        <p>
-          <input type="submit">
-        </p>
-      </form>
-    `, '');
-    res.status(200).send(html);
-  });
+  var title = 'WEB - create';
+  var list = template.list(req.list);
+  // form tag를 이용해서 post request를 보낼 수 있다.
+  var html = template.HTML(title, list, ` 
+    <form action="/create_process" method="post">
+      <p><input type="text" name="title" placeholder="title"></p>
+      <p>
+        <textarea name="description" placeholder="description"></textarea>
+      </p>
+      <p>
+        <input type="submit">
+      </p>
+    </form>
+  `, '');
+  res.status(200).send(html);
 });
 
 app.post('/create_process', (req, res) => {
@@ -115,28 +117,27 @@ app.post('/create_process', (req, res) => {
 
 // implement update function
 app.get('/update/:pageId', (req, res) => {
-  fs.readdir('./data', (err, filelist) => {
-    var filteredId = path.parse(req.params.pageId).base;
-    fs.readFile(`./data/${filteredId}`, 'utf8', (err, desc) => {
-      var title = req.params.pageId;
-      var list = template.list(filelist);
-      // 위에서와 똑같이 form tag로 수정할 정보를 post request 보냄.
-      // input type="hidden"은 원래 id를 얻기 위한 코드로, 사용자가 수정할 수 없도록 숨겼다.
-      var html = template.HTML(title, list, `
-        <form action="/update_process" method="post">
-          <input type="hidden" name="id" value="${title}">
-          <p><input type="text" name="title" placeholder="title" value="${title}"></p>
-          <p>
-            <textarea name="description" placeholder="description">${desc}</textarea>
-          </p>
-          <p>
-            <input type="submit">
-          </p>
-        </form>`,
-      `<a href="/create">create</a> <a href="/update/id=${title}">update<a>`); // control
+  var filteredId = path.parse(req.params.pageId).base;
 
-      res.status(200).send(html); 
-    });
+  fs.readFile(`./data/${filteredId}`, 'utf8', (err, desc) => {
+    var title = req.params.pageId;
+    var list = template.list(req.list);
+    // 위에서와 똑같이 form tag로 수정할 정보를 post request 보냄.
+    // input type="hidden"은 원래 id를 얻기 위한 코드로, 사용자가 수정할 수 없도록 숨겼다.
+    var html = template.HTML(title, list, `
+      <form action="/update_process" method="post">
+        <input type="hidden" name="id" value="${title}">
+        <p><input type="text" name="title" placeholder="title" value="${title}"></p>
+        <p>
+          <textarea name="description" placeholder="description">${desc}</textarea>
+        </p>
+        <p>
+          <input type="submit">
+        </p>
+      </form>`,
+    `<a href="/create">create</a> <a href="/update/id=${title}">update<a>`); // control
+
+    res.status(200).send(html); 
   });
 });
 // 수정할 정보를 받아서 수정하는 코드
