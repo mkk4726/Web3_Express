@@ -4,6 +4,8 @@ var fs = require('fs');
 var sanitizeHtml = require('sanitize-html');
 var path = require('path');
 var qs = require('querystring');
+const helmet = require('helmet');
+app.use(helmet);
 
 // make html source about list and body.
 const template = require('./libs/templates');
