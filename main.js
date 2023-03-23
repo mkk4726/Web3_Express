@@ -30,7 +30,6 @@ app.use(compression());
 app.get('*', (req, res, next) => {
   fs.readdir('./data', (err, filelist) => {
     req.list = filelist;
-    console.log(`middle-ware is used, ${req.list}`);
     next(); // next에는 그 다음에 호출되어야할 middleware가 담겨있다. 
   });
 });
@@ -48,15 +47,96 @@ app.get('/', (req, res) => {
     `<h2>${title}</h2>${description}
     <img src="/images/hello.jpg" style="width:25%; display:block; margin-top:10px">
     `,
-    `<a href="/create">create</a>`
+    `<a href="/topic/create">create</a>`
   );
   // res.writeHead(200);
   // res.end(html);
   res.status(200).send(html);
 });
-  
+
+// implement create function
+// topic/create는 page가 아닌 생성page로 가기 위한 예약어로 사용하기 위해 위치를 위로 올렸다.
+app.get('/topic/create', (req, res) => {
+  var title = 'WEB - create';
+  var list = template.list(req.list);
+  // form tag를 이용해서 post request를 보낼 수 있다.
+  var html = template.HTML(title, list, ` 
+    <form action="/topic/create_process" method="post">
+      <p><input type="text" name="title" placeholder="title"></p>
+      <p>
+        <textarea name="description" placeholder="description"></textarea>
+      </p>
+      <p>
+        <input type="submit">
+      </p>
+    </form>
+  `, '');
+  res.status(200).send(html);
+});
+
+app.post('/topic/create_process', (req, res) => {
+  var post = req.body;
+  var title = post.title;
+  var description = post.description;
+  fs.writeFile(`data/${title}`, description, 'utf8', (err) => {
+    res.writeHead(302, {Location: `/topic/${title}`});
+    res.end();
+  })
+
+});
+
+// implement update function
+app.get('/topic/update/:pageId', (req, res) => {
+  var filteredId = path.parse(req.params.pageId).base;
+
+  fs.readFile(`./data/${filteredId}`, 'utf8', (err, desc) => {
+    var title = req.params.pageId;
+    var list = template.list(req.list);
+    // 위에서와 똑같이 form tag로 수정할 정보를 post request 보냄.
+    // input type="hidden"은 원래 id를 얻기 위한 코드로, 사용자가 수정할 수 없도록 숨겼다.
+    var html = template.HTML(title, list, `
+      <form action="/topic/update_process" method="post">
+        <input type="hidden" name="id" value="${title}">
+        <p><input type="text" name="title" placeholder="title" value="${title}"></p>
+        <p>
+          <textarea name="description" placeholder="description">${desc}</textarea>
+        </p>
+        <p>
+          <input type="submit">
+        </p>
+      </form>`,
+    `<a href="/topic/create">create</a> <a href="/topic/update/id=${title}">update<a>`); // control
+
+    res.status(200).send(html); 
+  });
+});
+// 수정할 정보를 받아서 수정하는 코드
+app.post('/topic/update_process', (req, res) => {
+  var post = req.body;
+  var id = post.id;
+  var title = post.title;
+  var description = post.description;
+  fs.rename(`data/${id}`, `data/${title}`, (err) => {
+    fs.writeFile(`data/${title}`, description, 'utf8', (err) => {
+      res.writeHead(302, {Location: `/topic/${title}`}); // redirection
+      res.end();
+    });
+  });
+});
+
+// implement delete function
+// post request로 id값만 전달됨.
+app.post('/topic/delete_process', (req, res) => {
+  var post = req.body;
+  var id = post.id;
+  var filteredId = path.parse(id).base;
+  fs.unlink(`data/${filteredId}`, (err) => {
+    res.redirect('/'); // 처음 페이지로 redirection
+  });
+});
+
 // list에 없는 값을 url로 요청했을 때 error을 발생시키자.
-app.get('/page/:pageId', (req, res, next) => {
+app.get('/topic/:pageId', (req, res, next) => {
   // for security. prevent input like "../password.js"
   var filteredId = path.parse(req.params.pageId).base;
   // read description from ./data/id
@@ -71,119 +151,15 @@ app.get('/page/:pageId', (req, res, next) => {
       });
       let list = template.list(req.list);
       let html = template.HTML(title, list , sanitizedDescription,
-        `<a href="/create">create</a>
-        <a href="/update/${sanitizedTitle}">update</a>
-        <form action="/delete_process" method="post">
+        `<a href="/topic/create">create</a>
+        <a href="/topic/update/${sanitizedTitle}">update</a>
+        <form action="/topic/delete_process" method="post">
           <input type="hidden" name="id" value="${sanitizedTitle}">
           <input type="submit" value="delete">
         </form>`
       );
       res.status(200).send(html);
     }
-  });
-});
-
-// implement create function
-app.get('/create', (req, res) => {
-  var title = 'WEB - create';
-  var list = template.list(req.list);
-  // form tag를 이용해서 post request를 보낼 수 있다.
-  var html = template.HTML(title, list, ` 
-    <form action="/create_process" method="post">
-      <p><input type="text" name="title" placeholder="title"></p>
-      <p>
-        <textarea name="description" placeholder="description"></textarea>
-      </p>
-      <p>
-        <input type="submit">
-      </p>
-    </form>
-  `, '');
-  res.status(200).send(html);
-});
-
-app.post('/create_process', (req, res) => {
-
-  /*
-  var body = '';
-  // divide request just in case request is too long to process.  
-  req.on('data', (data) => {
-    body = body + data;
-  });
-  req.on('end', () => {
-    var post = qs.parse(body);
-    var title = post.title;
-    var description = post.description;
-    fs.writeFile(`data/${title}`, description, 'utf8', (err) => {
-      res.writeHead(302, {Location: `/page/${title}`}); // redirection
-      res.end();
-    })
-  });
-  */
-  var post = req.body;
-  var title = post.title;
-  var description = post.description;
-  fs.writeFile(`data/${title}`, description, 'utf8', (err) => {
-    res.writeHead(302, {Location: `/page/${title}`});
-    res.end();
-  })
-
-});
-
-// implement update function
-app.get('/update/:pageId', (req, res) => {
-  var filteredId = path.parse(req.params.pageId).base;
-
-  fs.readFile(`./data/${filteredId}`, 'utf8', (err, desc) => {
-    var title = req.params.pageId;
-    var list = template.list(req.list);
-    // 위에서와 똑같이 form tag로 수정할 정보를 post request 보냄.
-    // input type="hidden"은 원래 id를 얻기 위한 코드로, 사용자가 수정할 수 없도록 숨겼다.
-    var html = template.HTML(title, list, `
-      <form action="/update_process" method="post">
-        <input type="hidden" name="id" value="${title}">
-        <p><input type="text" name="title" placeholder="title" value="${title}"></p>
-        <p>
-          <textarea name="description" placeholder="description">${desc}</textarea>
-        </p>
-        <p>
-          <input type="submit">
-        </p>
-      </form>`,
-    `<a href="/create">create</a> <a href="/update/id=${title}">update<a>`); // control
-
-    res.status(200).send(html); 
-  });
-});
-// 수정할 정보를 받아서 수정하는 코드
-app.post('/update_process', (req, res) => {
-  var body = '';
-  // divide request just in case request is too long to process.  
-  req.on('data', (data) => {
-    body = body + data;
-  });
-  req.on('end', () => {
-    var post = qs.parse(body);
-    var id = post.id;
-    var title = post.title;
-    var description = post.description;
-    fs.rename(`data/${id}`, `data/${title}`, (err) => {
-      fs.writeFile(`data/${title}`, description, 'utf8', (err) => {
-        res.writeHead(302, {Location: `/page/${title}`}); // redirection
-        res.end();
-      });
-    });
-  });
-});
-
-// implement delete function
-// post request로 id값만 전달됨.
-app.post('/delete_process', (req, res) => {
-  var post = req.body;
-  var id = post.id;
-  var filteredId = path.parse(id).base;
-  fs.unlink(`data/${filteredId}`, (err) => {
-    res.redirect('/'); // 처음 페이지로 redirection
   });
 });
 

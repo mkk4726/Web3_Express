@@ -5,7 +5,7 @@ module.exports = {
     var i = 0;
     while(i < filelist.length) {
       if (filelist[i] !== 'INDEX') {
-        list = list + `<li><a href="/page/${filelist[i]}">${filelist[i]}</a></li>`;
+        list = list + `<li><a href="/topic/${filelist[i]}">${filelist[i]}</a></li>`;
       }
       i = i + 1;
     }
