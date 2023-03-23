@@ -8,21 +8,18 @@ var qs = require('querystring');
 // make html source about list and body.
 const template = require('./libs/templates');
 
-// simplify code using router.
-var topicRouter = require('./routes/topic');
-var indexRouter = require('./routes/index');
-
-
 // static file
-app.use(express.static('public')); // public directory안에서 파일을 찾겠다.
 // public아래에 있는 파일이나 디렉토리를 url을 통해 접근할 수 있게된다. -> 훨씬 더 안전해진다. 
+// public directory안에서 파일을 찾겠다.
+app.use(express.static('public')); 
 
 
 // using middleware, body-parser
-var bodyParser = require('body-parser');
-app.use(bodyParser.urlencoded({extended: false})) 
 // main.js가 실행될 때마다, 사용자가 요청할 때마다 middleware가 실행됨.
 // req.body가 추가됨.
+var bodyParser = require('body-parser');
+app.use(bodyParser.urlencoded({extended: false})) 
+
 
 // using 
 // create, request가 너무 길어서 거절됨. 용량이 커서 생기는 문제들
@@ -42,8 +39,9 @@ app.get('*', (req, res, next) => {
   });
 });
 
-// route, routing
-
+// simplify code using router.
+var topicRouter = require('./routes/topic');
+var indexRouter = require('./routes/index');
 // /topic으로 시작하는 주소들에게 topicRouter라는 middleware를 적용하겠다. 
 app.use('/topic', topicRouter);
 app.use('/', indexRouter);
@@ -61,6 +59,7 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke!');
 })
 
+// setting port number
 app.listen(3000, () => {
   console.log('Example app listeng on port 3000!')
 })
